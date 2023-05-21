@@ -33,7 +33,8 @@ class Recipe(models.Model):
     )
     name = models.TextField(verbose_name='Название')
     image = models.ImageField(
-        blank=False,
+        upload_to='images/',
+        blank=True,
     )
     text = models.TextField(verbose_name='Текст')
     cooking_time = models.TimeField()
@@ -84,3 +85,4 @@ class Favorite(models.Model):
         on_delete=models.CASCADE,
         related_name='users_favorites'
     )
+

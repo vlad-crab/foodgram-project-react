@@ -2,10 +2,26 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
 from .models import *
-from users.serializers import UsersSerializer
 
 
 User = get_user_model()
+
+
+class UsersSerializer(serializers.ModelSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        fields = (
+            "email", "id", "username", "first_name",
+            "last_name", "is_subscribed",
+        )
+        model = User
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        if user.is_anonymous:
+            return False
+        return obj.following.filter(user=user).exists()
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -80,15 +96,12 @@ class RecipeSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
-        instance.name = validated_data.get('name', instance.name)
-        instance.text = validated_data.get('text', instance.text)
-        instance.cooking_time = validated_data.get(
-            'cooking_time',
-            instance.cooking_time
-        )
-        instance.image = validated_data.get('image', instance.image)
+        instance.name = validated_data['name']
+        instance.text = validated_data['text']
+        instance.cooking_time = validated_data['cooking_time']
+        instance.image = validated_data['image']
         instance.tags.set(tags)
-        instance.ingredients.clear()
+        IngredientWithWT.objects.filter(recipe=instance).delete()
         for ingredient in ingredients:
             IngredientWithWT.objects.create(
                 recipe=instance,
@@ -98,6 +111,47 @@ class RecipeSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def validate_name(self, value):
+        if len(value) > 200:
+            raise serializers.ValidationError(
+                'Название рецепта не может быть длиннее 200 символов'
+            )
+        return value
+
+    def validate_cooking_time(self, value):
+        if value < 1:
+            raise serializers.ValidationError(
+                'Время приготовления не может быть меньше 1 минуты'
+            )
+        return value
+
+    def validate_ingredients(self, value):
+        if len(value) == 0:
+            raise serializers.ValidationError(
+                'Рецепт должен содержать хотя бы один ингредиент'
+            )
+        for ingredient in value:
+            if ingredient['amount'] <= 0:
+                raise serializers.ValidationError(
+                    'Количество ингредиента не может быть меньше 1'
+                )
+            if not Ingredient.objects.filter(id=ingredient['id']).exists():
+                raise serializers.ValidationError(
+                    'Ингредиент не найден'
+                )
+        return value
+
+    def validate_tags(self, value):
+        if len(value) == 0:
+            raise serializers.ValidationError(
+                'Рецепт должен содержать хотя бы один тег'
+            )
+        for tag_id in value:
+            if not Tag.objects.filter(id=tag_id).exists():
+                raise serializers.ValidationError(
+                    'Тег не найден'
+                )
+        return value
 
 class ReducedRecipeSerializer(serializers.ModelSerializer):
 

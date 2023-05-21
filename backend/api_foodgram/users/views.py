@@ -1,13 +1,12 @@
-from rest_framework import (mixins, permissions, serializers, status, views,
-                            viewsets)
+from django.shortcuts import get_object_or_404
+from rest_framework import viewsets, status
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
 
-from .serializers import UsersSerializer, UsersWithRecipesSerializer
-from .permissions import IsAuthenticated
 from .models import Subscriptions
+from .permissions import IsAuthenticated
+from .serializers import UsersSerializer, UsersWithRecipesSerializer
 
 
 User = get_user_model()
@@ -42,7 +41,7 @@ class ManageSubscriptionsView(viewsets.ModelViewSet):
             )
         Subscriptions.objects.create(user=user, author=author)
 
-    def perform_destroy(self, instance):
+    def perform_destroy(self, serializer):
         author = get_object_or_404(User, id=self.kwargs.get('id'))
         user = self.request.user
         if author == user:
@@ -56,4 +55,3 @@ class ManageSubscriptionsView(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         Subscriptions.objects.get(user=user, author=author).delete()
-

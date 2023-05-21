@@ -11,3 +11,4 @@ asgiref==3.2.10
 sqlparse==0.3.1
 python-dotenv==0.19.0
 djoser
+Pillow==8.3.1

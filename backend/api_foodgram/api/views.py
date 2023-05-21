@@ -1,6 +1,7 @@
+from django.db.models import Sum
 from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, viewsets, status
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
@@ -52,7 +53,16 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, request):
         recipe = Recipe.objects.get(pk=self.kwargs['pk'])
-        ShoppingCart.objects.get_or_create(
+        obj = ShoppingCart.objects.filter(
+            user=self.request.user,
+            recipe=recipe
+        )
+        if obj.exists():
+            return Response(
+                {'errors': 'Вы уже добавили рецепт в корзину'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        ShoppingCart.objects.create(
             user=self.request.user,
             recipe=recipe
         )
@@ -62,10 +72,16 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, request):
         recipe = Recipe.objects.get(pk=self.kwargs['pk'])
-        ShoppingCart.objects.filter(
+        obj = ShoppingCart.objects.filter(
             user=self.request.user,
             recipe=recipe
-        ).delete()
+        )
+        if not obj.exists():
+            return Response(
+                {'errors': 'Рецепта не было в корзине'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        obj.delete()
         serializer = self.get_serializer(recipe)
         return Response(serializer.data)
 
@@ -80,6 +96,15 @@ class FavoriteViewSet(viewsets.ModelViewSet):
 
     def perfom_create(self, request):
         recipe = Recipe.objects.get(pk=self.kwargs['pk'])
+        obj = Favorite.objects.filter(
+            user=self.request.user,
+            recipe=recipe
+        )
+        if obj.exists():
+            return Response(
+                {'errors': 'Вы уже добавили рецепт в избранное'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         Favorite.objects.get_or_create(
             user=self.request.user,
             recipe=recipe
@@ -93,16 +118,29 @@ class FavoriteViewSet(viewsets.ModelViewSet):
             recipe=self.kwargs['pk']
             )
         if not obj.exists():
-            return Response(status=404, data={'errors': 'Not found'})
+            return Response(
+                {'errors': 'Рецепта не было в избранном'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         obj.delete()
-
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeSerializer
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthorOrReadOnly, ]
-    queryset = Recipe.objects.all()
     filterset_class = RecipeFilter
     filterset_fields = ('tags', 'is_favorited', 'is_in_shopping_cart')
     filter_backends = (DjangoFilterBackend, )
+
+    def get_queryset(self):
+        queryset = Recipe.objects.all()
+        user = self.request.user
+        request = self.request
+        if request.query_params.get('is_favorited'):
+            queryset.filter(favorites__user=user)
+        if request.query_params.get('is_in_shopping_cart'):
+            queryset.filter(shopping_cart__user=user)
+        if request.query_params.get('author'):
+            queryset.filter(author=request.query_params.get('author'))
+        return queryset

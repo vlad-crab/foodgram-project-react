@@ -6,13 +6,13 @@ from .views import *
 
 router = DefaultRouter()
 router.register('tags', TagViewSet)
-router.register('recipes', RecipeViewSet)
+router.register('recipes', RecipeViewSet, basename='recipes')
 router.register('ingredients', IngredientViewSet)
 
 
 urlpatterns = [
-    path('recipes/download_shopping_cart/', ShoppingCartViewSet.as_view()),
-    path('recipes/{id}/shopping_cart/', ShoppingCartViewSet.as_view()),
-    path('recipes/{id}/favorite', FavoriteViewSet.as_view()),
+    path('recipes/download_shopping_cart/', ShoppingCartViewSet.as_view({'get': 'retrieve'})),
+    path('recipes/{id}/shopping_cart/', ShoppingCartViewSet.as_view({'post': 'create', 'delete': 'destroy'})),
+    path('recipes/{id}/favorite', FavoriteViewSet.as_view({'post': 'create', 'delete': 'destroy'})),
     path('', include(router.urls)),
 ]

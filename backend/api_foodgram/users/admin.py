@@ -1,3 +1,9 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import Subscriptions
+
+
+class SubscriptionsAdmin(admin.ModelAdmin):
+    empty_value_display = '-пусто-'
+
+admin.site.register(Subscriptions, SubscriptionsAdmin)
