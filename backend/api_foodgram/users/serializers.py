@@ -2,8 +2,6 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserCreateSerializer, UserSerializer
 
-from api.serializers import ReducedRecipeSerializer
-
 
 User = get_user_model()
 
@@ -71,14 +69,3 @@ class CustomUserCreateSerializer(UserCreateSerializer):
                 {'first_name', error_message}
             )
         return value
-
-
-class UsersWithRecipesSerializer(CustomUserSerializer):
-    recipes = ReducedRecipeSerializer(many=True, read_only=True)
-
-    class Meta:
-        fields = (
-            "email", "id", "username", "first_name",
-            "last_name", "recipes", 'is_subscribed',
-        )
-        model = User

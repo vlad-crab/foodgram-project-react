@@ -18,6 +18,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
+    'testserver'
     '158.160.9.100',
     'web',
 ]
@@ -140,6 +141,7 @@ DJOSER = {
     'SERIALIZERS': {
         'user': 'users.serializers.CustomUserSerializer',
         'user_create': 'users.serializers.CustomUserCreateSerializer',
+        'current_user': 'users.serializers.CustomUserSerializer',
     },
     'PERMISSIONS': {
         'user_list': ['rest_framework.permissions.AllowAny'],
