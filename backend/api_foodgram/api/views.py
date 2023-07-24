@@ -87,19 +87,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Recipe.objects.all()
-        user = self.request.user
-        request = self.request
-        if request.query_params.get('is_favorited'):
+        if self.request.query_params.get('is_favorited'):
             queryset = queryset.filter(
-                users_favorites__user=user
+                users_favorites__user=self.request.user
             )
-        if request.query_params.get('is_in_shopping_cart'):
+        if self.request.query_params.get('is_in_shopping_cart'):
             queryset = queryset.filter(
-                users_carts__user=user
+                users_carts__user=self.request.user
             )
-        if request.query_params.get('author'):
+        if self.request.query_params.get('author'):
             queryset = queryset.filter(
-                author=request.query_params.get('author')
+                author=self.request.query_params.get('author')
             )
         return queryset
 
@@ -170,10 +168,12 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def download(self, request):
         user = self.request.user
-        recipe_ids = [obj.recipe.id for obj in ShoppingCart.objects.filter(user=user)]
-        queryset = IngredientWithWT.objects\
-            .filter(recipe__in=recipe_ids).values('ingredient_id')\
-            .annotate(amount=Sum('amount'))
+        recipe_ids = []
+        for obj in ShoppingCart.objects.filter(user=user):
+            recipe_ids.append(obj.recipe.id)
+        queryset = IngredientWithWT.objects.filter(
+            recipe__in=recipe_ids
+        ).values('ingredient_id').annotate(amount=Sum('amount'))
         shopping_cart = ''
         for item in queryset:
             ingredient = Ingredient.objects.get(pk=item['ingredient_id'])

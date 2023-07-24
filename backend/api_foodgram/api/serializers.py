@@ -5,6 +5,7 @@ from django.core.files.base import ContentFile
 from rest_framework import serializers
 
 from users.serializers import CustomUserSerializer
+
 from .models import Favorite, Ingredient, IngredientWithWT, Recipe, Tag
 
 User = get_user_model()
@@ -80,8 +81,9 @@ class UsersWithRecipesSerializer(CustomUserSerializer):
         return obj.following.filter(user=user).exists()
 
     def get_recipes(self, obj):
-        recipes_limit = self.context.get('request')\
-            .query_params.get('recipes_limit')
+        recipes_limit = self.context.get(
+            'request'
+        ).query_params.get('recipes_limit')
         queryset = obj.recipes.all()
         if recipes_limit:
             queryset = queryset[:int(recipes_limit)]
