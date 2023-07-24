@@ -68,7 +68,7 @@ class FavoriteViewSet(viewsets.ModelViewSet):
         favorite_obj = Favorite.objects.filter(
             user=self.request.user,
             recipe=self.kwargs['pk']
-            )
+        )
         if not favorite_obj.exists():
             return Response(
                 {'errors': 'Рецепта не было в избранном'},
