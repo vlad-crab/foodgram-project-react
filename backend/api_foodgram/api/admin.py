@@ -1,6 +1,7 @@
 from django.contrib import admin
-from .models import (Ingredient, Recipe, Tag, ShoppingCart,
-                     Favorite, Subscriptions, IngredientWithWT)
+
+from .models import (Favorite, Ingredient, IngredientWithWT, Recipe,
+                     ShoppingCart, Subscriptions, Tag)
 
 
 class IngredientAdmin(admin.ModelAdmin):
@@ -11,6 +12,7 @@ class IngredientAdmin(admin.ModelAdmin):
 
 class IngredientWithWTAdmin(admin.ModelAdmin):
     empty_value_display = '-пусто-'
+
 
 class TagsInLine(admin.TabularInline):
     model = Recipe.tags.through

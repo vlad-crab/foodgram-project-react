@@ -1,19 +1,20 @@
+from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import permissions, viewsets, status
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from django.contrib.auth import get_user_model
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from djoser.views import UserViewSet
 
-from .serializers import *
-from .permissions import IsAuthenticated, IsAuthorOrReadOnly
-from .models import *
 from .filters import RecipeFilter
-
+from .models import (Favorite, Ingredient, IngredientWithWT, Recipe,
+                     ShoppingCart, Subscriptions, Tag)
+from .permissions import IsAuthenticated, IsAuthorOrReadOnly
+from .serializers import (IngredientSerializer, RecipeReadSerializer,
+                          RecipeWriteSerializer, ReducedRecipeSerializer,
+                          TagSerializer, UsersWithRecipesSerializer)
 
 User = get_user_model()
 
@@ -22,12 +23,12 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     pagination_class = None
     permission_classes = (permissions.AllowAny, )
+
     def get_queryset(self):
         name = self.request.query_params.get('name')
         if name:
             return Ingredient.objects.filter(name__contains=name.lower())
         return Ingredient.objects.all()
-
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -145,7 +146,11 @@ class ManageSubscriptionsView(viewsets.ModelViewSet):
                 {'errors': 'Нельзя отписаться от самого себя'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        if not Subscriptions.objects.filter(user=user, author=author).exists():
+        flag = Subscriptions.objects.filter(
+            user=user,
+            author=author
+        ).exists()
+        if not flag:
             return Response(
                 {'errors': 'Вы не подписаны на этого пользователя'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -166,14 +171,17 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
     def download(self, request):
         user = self.request.user
         recipe_ids = [obj.recipe.id for obj in ShoppingCart.objects.filter(user=user)]
-        queryset = IngredientWithWT.objects.filter(recipe__in=recipe_ids).values('ingredient_id').annotate(amount=Sum('amount'))
+        queryset = IngredientWithWT.objects\
+            .filter(recipe__in=recipe_ids).values('ingredient_id')\
+            .annotate(amount=Sum('amount'))
         shopping_cart = ''
         for item in queryset:
             ingredient = Ingredient.objects.get(pk=item['ingredient_id'])
-            shopping_cart += f'{ingredient.name} ({item["amount"]})' \
-                             f'{ingredient.measure_unit}, \n'
+            shopping_cart += (f'{ingredient.name} ({item["amount"]})'
+                              f'{ingredient.measure_unit}, \n')
         response = HttpResponse(shopping_cart, 'Content-Type: text/plain')
-        response['Content-Disposition'] = 'attachment; filename="shopping_cart.txt"'
+        response['Content-Disposition'] = ('attachment; filename='
+                                           '"shopping_cart.txt"')
         return response
 
     def create(self, request, *args, **kwargs):

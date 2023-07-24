@@ -1,11 +1,11 @@
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
 import base64
+
+from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
+from rest_framework import serializers
 
-from .models import *
 from users.serializers import CustomUserSerializer
-
+from .models import Favorite, Ingredient, IngredientWithWT, Recipe, Tag
 
 User = get_user_model()
 
@@ -57,7 +57,6 @@ class UsersWithRecipesSerializer(CustomUserSerializer):
     recipes_count = serializers.SerializerMethodField(read_only=True)
     is_subscribed = serializers.SerializerMethodField(read_only=True)
 
-
     class Meta:
         fields = (
             "email", "id", "username", "first_name",
@@ -81,7 +80,8 @@ class UsersWithRecipesSerializer(CustomUserSerializer):
         return obj.following.filter(user=user).exists()
 
     def get_recipes(self, obj):
-        recipes_limit = self.context.get('request').query_params.get('recipes_limit')
+        recipes_limit = self.context.get('request')\
+            .query_params.get('recipes_limit')
         queryset = obj.recipes.all()
         if recipes_limit:
             queryset = queryset[:int(recipes_limit)]
@@ -152,7 +152,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             instance.ingredients.all(), many=True
         ).data
         return recipe
-
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')

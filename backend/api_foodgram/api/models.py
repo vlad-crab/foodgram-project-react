@@ -1,9 +1,9 @@
-from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
 from rest_framework.authtoken.models import Token
 
-
 User = get_user_model()
+
 
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -47,7 +47,8 @@ class IngredientWithWT(models.Model):
         verbose_name_plural = 'Ингредиенты с количеством'
 
     def __str__(self):
-        return f'{self.ingredient.name} {self.amount} {self.ingredient.measure_unit}'
+        return (f'{self.ingredient.name} {self.amount} '
+                f'{self.ingredient.measure_unit}')
 
 
 class Recipe(models.Model):
@@ -76,7 +77,7 @@ class Recipe(models.Model):
     pub_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering  = ['-pub_date',]
+        ordering = ['-pub_date', ]
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
