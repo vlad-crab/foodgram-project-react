@@ -52,7 +52,8 @@ class IngredientWithWTSerializer(serializers.ModelSerializer):
 
 
 class UsersWithRecipesSerializer(CustomUserSerializer):
-    recipes = ReducedRecipeSerializer(many=True, read_only=True)
+
+    recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField(read_only=True)
     is_subscribed = serializers.SerializerMethodField(read_only=True)
 
@@ -78,6 +79,13 @@ class UsersWithRecipesSerializer(CustomUserSerializer):
         if user.is_anonymous:
             return False
         return obj.following.filter(user=user).exists()
+
+    def get_recipes(self, obj):
+        recipes_limit = self.context.get('request').query_params.get('recipes_limit')
+        queryset = obj.recipes.all()
+        if recipes_limit:
+            queryset = queryset[:int(recipes_limit)]
+        return ReducedRecipeSerializer(queryset, many=True).data
 
 
 class Base64ImageField(serializers.ImageField):

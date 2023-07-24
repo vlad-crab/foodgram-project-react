@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from rest_framework.authtoken.models import Token
 
 
 User = get_user_model()
@@ -12,6 +13,10 @@ class Tag(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = 'Тэг'
+        verbose_name_plural = 'Тэги'
+
 
 class Ingredient(models.Model):
     name = models.TextField()
@@ -20,14 +25,26 @@ class Ingredient(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
+
 
 class IngredientWithWT(models.Model):
-    amount = models.IntegerField(blank=False)
+    amount = models.IntegerField(
+        blank=False,
+        null=False,
+        default=1,
+    )
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
         related_name='weights'
     )
+
+    class Meta:
+        verbose_name = 'Ингредиент с количеством'
+        verbose_name_plural = 'Ингредиенты с количеством'
 
     def __str__(self):
         return f'{self.ingredient.name} {self.amount} {self.ingredient.measure_unit}'
@@ -60,6 +77,8 @@ class Recipe(models.Model):
 
     class Meta:
         ordering  = ['-pub_date',]
+        verbose_name = 'Рецепт'
+        verbose_name_plural = 'Рецепты'
 
     def __str__(self):
         return f'{self.name}'
@@ -84,6 +103,8 @@ class ShoppingCart(models.Model):
                 name='shopping_cart_constraint'
             )
         ]
+        verbose_name = 'Корзина'
+        verbose_name_plural = 'Корзины'
 
 
 class Favorite(models.Model):
@@ -97,6 +118,16 @@ class Favorite(models.Model):
         on_delete=models.CASCADE,
         related_name='users_favorites'
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='favorite_constraint'
+            )
+        ]
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранные'
 
 
 class Subscriptions(models.Model):
@@ -119,3 +150,11 @@ class Subscriptions(models.Model):
                 name='follow_constraint'
             )
         ]
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+
+
+class RenamedToken(Token):
+    class Meta:
+        verbose_name = 'Токен'
+        verbose_name_plural = 'Токены'

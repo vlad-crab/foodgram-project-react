@@ -1,5 +1,4 @@
 import os
-from datetime import timedelta
 
 from dotenv import load_dotenv
 
@@ -18,7 +17,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
-    'testserver'
     '158.160.9.100',
     'web',
 ]
@@ -149,6 +147,7 @@ DJOSER = {
     },
     'HIDE_USERS': False,
     'LOGIN_FIELD': 'email',
+    'TOKEN_MODEL': 'api.models.RenamedToken',
 }
 
 
