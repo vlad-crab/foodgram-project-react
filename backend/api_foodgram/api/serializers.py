@@ -3,12 +3,33 @@ import base64
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from rest_framework import serializers
+from djoser.serializers import UserCreateSerializer as DjoserCreateSerializer
+from djoser.serializers import UserSerializer as DjoserUserSerializer
+from django.db import transaction
 
-from users.serializers import CustomUserSerializer
+from recipes.models import Ingredient, IngredientWithWT, Recipe, Tag
 
-from .models import Favorite, Ingredient, IngredientWithWT, Recipe, Tag
+from .models import Favorite
 
 User = get_user_model()
+error_message = 'Длина не может превышать 150 символов'
+
+
+class UserSerializer(DjoserUserSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        fields = (
+            "email", "id", "username", "first_name",
+            "last_name", "is_subscribed",
+        )
+        model = User
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        if user.is_anonymous:
+            return False
+        return obj.following.filter(user=user).exists()
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -34,25 +55,22 @@ class ReducedRecipeSerializer(serializers.ModelSerializer):
 
 
 class IngredientWithWTSerializer(serializers.ModelSerializer):
-    id = serializers.SerializerMethodField(read_only=True)
-    name = serializers.SerializerMethodField(read_only=True)
-    measure_unit = serializers.SerializerMethodField(read_only=True)
+    id = serializers.IntegerField(source='ingredient.id', read_only=True)
+    name = serializers.CharField(
+        source='ingredient.name',
+        read_only=True
+    )
+    measure_unit = serializers.CharField(
+        source='ingredient.measure_unit',
+        read_only=True
+    )
 
     class Meta:
         fields = ('id', 'amount', 'name', 'measure_unit')
         model = IngredientWithWT
 
-    def get_id(self, obj):
-        return obj.ingredient.id
 
-    def get_name(self, obj):
-        return obj.ingredient.name
-
-    def get_measure_unit(self, obj):
-        return obj.ingredient.measure_unit
-
-
-class UsersWithRecipesSerializer(CustomUserSerializer):
+class UsersWithRecipesSerializer(UserSerializer):
 
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField(read_only=True)
@@ -102,7 +120,7 @@ class Base64ImageField(serializers.ImageField):
 class RecipeReadSerializer(serializers.ModelSerializer):
     ingredients = IngredientWithWTSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
-    author = CustomUserSerializer(read_only=True)
+    author = UserSerializer(read_only=True)
     is_favorited = serializers.SerializerMethodField(read_only=True)
     is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
 
@@ -137,7 +155,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         child=serializers.IntegerField(),
         write_only=True
     )
-    author = CustomUserSerializer(read_only=True)
+    author = UserSerializer(read_only=True)
     ingredients = IngredientForRecipeSerializer(many=True, write_only=True)
 
     class Meta:
@@ -155,24 +173,30 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         ).data
         return recipe
 
+    @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         author = self.context.get('request').user
-        recipe = Recipe.objects.create(**validated_data, author=author)
-        tag_ids = [tag for tag in tags]
-        recipe.tags.set(tag_ids)
+        recipe = Recipe(**validated_data, author=author)
+        ingredient_wt_obj_list = []
         for ingredient in ingredients:
-            ingredient_obj = Ingredient.objects.get(
-                id=int(ingredient['id'])
+            ingredient_wt_obj_list.append(
+                IngredientWithWT(
+                    ingredient=ingredient['id'],
+                    amount=ingredient['amount'],
+                )
             )
-            ingredient_wt_obj = IngredientWithWT.objects.create(
-                ingredient=ingredient_obj,
-                amount=int(ingredient['amount']),
+        recipe.ingredients.set(
+            IngredientWithWT.objects.bulk_create(
+                ingredient_wt_obj_list
             )
-            recipe.ingredients.add(ingredient_wt_obj)
+        )
+        recipe.tags.set(tags)
+        recipe.save()
         return recipe
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
@@ -181,8 +205,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         instance.cooking_time = validated_data['cooking_time']
         if 'image' in validated_data.keys():
             instance.image = validated_data['image']
-        tag_ids = [tag_id for tag_id in tags]
-        instance.tags.set(tag_ids)
+        instance.tags.set(tags)
         IngredientWithWT.objects.filter(recipe=instance).delete()
         for ingredient in ingredients:
             instance.ingredients.add(
@@ -228,5 +251,50 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         if len(value) == 0:
             raise serializers.ValidationError(
                 'Рецепт должен содержать хотя бы один тег'
+            )
+        return value
+
+
+class UserCreateSerializer(DjoserCreateSerializer):
+
+    class Meta:
+        fields = (
+            "email", "username", "first_name",
+            "last_name", "password",
+        )
+        model = User
+
+    def validate_email(self, value):
+        if len(value) > 254:
+            raise serializers.ValidationError(
+                {'email': 'Длина почты не может превышать 254 символа'}
+            )
+        return value
+
+    def validate_username(self, value):
+        if len(value) > 150:
+            raise serializers.ValidationError(
+                {'username': error_message}
+            )
+        return value
+
+    def validate_password(self, value):
+        if len(value) > 150:
+            raise serializers.ValidationError(
+                {'password': error_message}
+            )
+        return value
+
+    def validate_last_name(self, value):
+        if len(value) > 150:
+            raise serializers.ValidationError(
+                {'last_name': error_message}
+            )
+        return value
+
+    def validate_first_name(self, value):
+        if len(value) > 150:
+            raise serializers.ValidationError(
+                {'first_name', error_message}
             )
         return value
