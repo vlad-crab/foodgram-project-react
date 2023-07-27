@@ -3,8 +3,8 @@ import os
 
 from django.core.management.base import BaseCommand
 
-from api.models import Ingredient
 from api_foodgram.settings import BASE_DIR
+from recipes.models import Ingredient
 
 
 class Command(BaseCommand):

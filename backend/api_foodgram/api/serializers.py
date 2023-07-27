@@ -2,14 +2,12 @@ import base64
 
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from rest_framework import serializers
+from django.db import transaction
 from djoser.serializers import UserCreateSerializer as DjoserCreateSerializer
 from djoser.serializers import UserSerializer as DjoserUserSerializer
-from django.db import transaction
+from rest_framework import serializers
 
 from recipes.models import Ingredient, IngredientWithWT, Recipe, Tag
-
-from .models import Favorite
 
 User = get_user_model()
 error_message = 'Длина не может превышать 150 символов'
@@ -121,8 +119,8 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     ingredients = IngredientWithWTSerializer(many=True, read_only=True)
     tags = TagSerializer(many=True, read_only=True)
     author = UserSerializer(read_only=True)
-    is_favorited = serializers.SerializerMethodField(read_only=True)
-    is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
+    is_favorited = serializers.BooleanField(read_only=True)
+    is_in_shopping_cart = serializers.BooleanField(read_only=True)
 
     class Meta:
         fields = (
@@ -130,18 +128,6 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time'
         )
         model = Recipe
-
-    def get_is_favorited(self, obj):
-        user = self.context.get('request').user
-        if user.is_anonymous:
-            return False
-        return Favorite.objects.filter(user=user, recipe=obj).exists()
-
-    def get_is_in_shopping_cart(self, obj):
-        user = self.context.get('request').user
-        if user.is_anonymous:
-            return False
-        return obj.users_carts.filter(user=user).exists()
 
 
 class IngredientForRecipeSerializer(serializers.Serializer):
@@ -183,17 +169,17 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         for ingredient in ingredients:
             ingredient_wt_obj_list.append(
                 IngredientWithWT(
-                    ingredient=ingredient['id'],
+                    ingredient_id=ingredient['id'],
                     amount=ingredient['amount'],
                 )
             )
+        recipe.save()
         recipe.ingredients.set(
             IngredientWithWT.objects.bulk_create(
                 ingredient_wt_obj_list
             )
         )
         recipe.tags.set(tags)
-        recipe.save()
         return recipe
 
     @transaction.atomic
@@ -205,15 +191,21 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         instance.cooking_time = validated_data['cooking_time']
         if 'image' in validated_data.keys():
             instance.image = validated_data['image']
-        instance.tags.set(tags)
+        ingredient_wt_obj_list = []
         IngredientWithWT.objects.filter(recipe=instance).delete()
         for ingredient in ingredients:
-            instance.ingredients.add(
-                IngredientWithWT.objects.create(
-                    ingredient=Ingredient.objects.get(id=ingredient['id']),
+            ingredient_wt_obj_list.append(
+                IngredientWithWT(
+                    ingredient_id=ingredient['id'],
                     amount=int(ingredient['amount'])
                 )
             )
+        instance.ingredients.set(
+            IngredientWithWT.objects.bulk_create(
+                ingredient_wt_obj_list
+            )
+        )
+        instance.tags.set(tags)
         instance.save()
         return instance
 

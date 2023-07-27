@@ -1,24 +1,23 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Sum
+from django.db.models import Exists, OuterRef
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import IsAuthenticated
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
+
+from recipes.models import Ingredient, Recipe, Tag
 
 from .filters import RecipeFilter
-from .services import get_shopping_list
-from .models import Favorite, Subscriptions, ShoppingCart
+from .models import Favorite, ShoppingCart, Subscriptions
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeWriteSerializer, ReducedRecipeSerializer,
                           TagSerializer, UsersWithRecipesSerializer)
-
-from recipes.models import Ingredient, IngredientWithWT, Recipe, Tag
+from .services import get_shopping_list
 
 User = get_user_model()
 
@@ -63,6 +62,20 @@ class RecipeViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 author=self.request.query_params.get('author')
             )
+        queryset = queryset.annotate(
+            is_favorited=Exists(
+                Favorite.objects.filter(
+                    user=self.request.user,
+                    recipe=OuterRef('pk')
+                )
+            ),
+            is_in_shopping_cart=Exists(
+                ShoppingCart.objects.filter(
+                    user=self.request.user,
+                    recipe=OuterRef('pk')
+                )
+            ),
+        )
         return queryset
 
     def get_serializer_class(self):

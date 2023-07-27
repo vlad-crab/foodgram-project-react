@@ -1,7 +1,6 @@
 from django.contrib import admin
 
 from api.models import Favorite, ShoppingCart, Subscriptions
-
 from recipes.models import Ingredient, IngredientWithWT, Recipe, Tag
 
 
