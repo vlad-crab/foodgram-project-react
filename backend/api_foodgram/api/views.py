@@ -6,14 +6,14 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
-from recipes.models import Ingredient, Recipe, Tag
+from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
+                            Subscriptions, Tag)
 
 from .filters import RecipeFilter
-from .models import Favorite, ShoppingCart, Subscriptions
-from .permissions import IsAuthorOrReadOnly
+from .permissions import IsAuthor, ReadOnly
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeWriteSerializer, ReducedRecipeSerializer,
                           TagSerializer, UsersWithRecipesSerializer)
@@ -43,39 +43,31 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
-    permission_classes = [IsAuthorOrReadOnly, ]
+    permission_classes = (IsAdminUser | IsAuthor | ReadOnly,)
     filterset_class = RecipeFilter
-    filterset_fields = ('tags', )
+    filterset_fields = (
+        'tags', 'is_in_shopping_cart',
+        'is_favorited', 'author'
+    )
     filter_backends = (DjangoFilterBackend, )
 
     def get_queryset(self):
         queryset = Recipe.objects.all()
-        if self.request.query_params.get('is_favorited'):
-            queryset = queryset.filter(
-                users_favorites__user=self.request.user
+        if self.request.user.is_authenticated:
+            queryset = queryset.annotate(
+                is_favorited=Exists(
+                    Favorite.objects.filter(
+                        user=self.request.user,
+                        recipe=OuterRef('pk')
+                    )
+                ),
+                is_in_shopping_cart=Exists(
+                    ShoppingCart.objects.filter(
+                        user=self.request.user,
+                        recipe=OuterRef('pk')
+                    )
+                ),
             )
-        if self.request.query_params.get('is_in_shopping_cart'):
-            queryset = queryset.filter(
-                users_carts__user=self.request.user
-            )
-        if self.request.query_params.get('author'):
-            queryset = queryset.filter(
-                author=self.request.query_params.get('author')
-            )
-        queryset = queryset.annotate(
-            is_favorited=Exists(
-                Favorite.objects.filter(
-                    user=self.request.user,
-                    recipe=OuterRef('pk')
-                )
-            ),
-            is_in_shopping_cart=Exists(
-                ShoppingCart.objects.filter(
-                    user=self.request.user,
-                    recipe=OuterRef('pk')
-                )
-            ),
-        )
         return queryset
 
     def get_serializer_class(self):
@@ -130,16 +122,15 @@ class ManageSubscriptionsView(viewsets.ModelViewSet):
                 {'errors': 'Нельзя отписаться от самого себя'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        flag = Subscriptions.objects.filter(
+        del_count, _ = Subscriptions.objects.filter(
             user=user,
             author=author
-        ).exists()
-        if not flag:
+        ).delete()
+        if not del_count:
             return Response(
                 {'errors': 'Вы не подписаны на этого пользователя'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        Subscriptions.objects.get(user=user, author=author).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -173,16 +164,15 @@ class FavoriteShoppingCartMixin(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         recipe = Recipe.objects.get(pk=self.kwargs['pk'])
-        obj = self.model.objects.filter(
+        del_count, _ = self.model.objects.filter(
             user=self.request.user,
             recipe=recipe
-        )
-        if not obj.exists():
+        ).delete()
+        if not del_count:
             return Response(
                 {'errors': 'Нельзя удалить то, чего нет :('},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        obj.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

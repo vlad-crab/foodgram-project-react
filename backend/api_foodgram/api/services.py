@@ -1,7 +1,6 @@
 from django.db.models import Sum
 
-from api.models import ShoppingCart
-from recipes.models import Ingredient, IngredientWithWT
+from recipes.models import Ingredient, IngredientWithWT, ShoppingCart
 
 
 def get_shopping_list(user):

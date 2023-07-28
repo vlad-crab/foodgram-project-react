@@ -12,14 +12,14 @@ SECRET_KEY = os.getenv(
     default='SECRET_KEYSECRET_KEYSECRET_KEYSECRET_KEYSECRET_KEY'
 )
 
-DEBUG = True
+DEBUG = os.getenv('DEBUG', default='False') == 'True'
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '158.160.9.100',
-    'web',
-]
-
+ALLOWED_HOSTS = list(
+    os.getenv(
+        'DJANGO_ALLOWED_HOSTS',
+        default='localhost'
+    ).split(';')
+)
 
 # Application definition
 
@@ -155,7 +155,6 @@ DJOSER = {
     },
     'HIDE_USERS': False,
     'LOGIN_FIELD': 'email',
-    'TOKEN_MODEL': 'api.models.RenamedToken',
 }
 
 
