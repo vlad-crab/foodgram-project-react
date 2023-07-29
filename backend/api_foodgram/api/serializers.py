@@ -10,7 +10,6 @@ from rest_framework import serializers
 from recipes.models import Ingredient, IngredientWithWT, Recipe, Tag
 
 User = get_user_model()
-error_message = 'Длина не может превышать 150 символов'
 
 
 class UserSerializer(DjoserUserSerializer):
@@ -18,8 +17,8 @@ class UserSerializer(DjoserUserSerializer):
 
     class Meta:
         fields = (
-            "email", "id", "username", "first_name",
-            "last_name", "is_subscribed",
+            'email', 'id', 'username', 'first_name',
+            'last_name', 'is_subscribed',
         )
         model = User
 
@@ -76,15 +75,15 @@ class UsersWithRecipesSerializer(UserSerializer):
 
     class Meta:
         fields = (
-            "email", "id", "username", "first_name",
-            "last_name", "recipes", 'is_subscribed',
-            "recipes_count"
+            'email', 'id', 'username', 'first_name',
+            'last_name', 'recipes', 'is_subscribed',
+            'recipes_count'
         )
         model = User
         read_only_fields = (
-            "email", "id", "username", "first_name",
-            "last_name", "recipes", 'is_subscribed',
-            "recipes_count"
+            'email', 'id', 'username', 'first_name',
+            'last_name', 'recipes', 'is_subscribed',
+            'recipes_count'
         )
 
     def get_recipes_count(self, obj):
@@ -237,12 +236,17 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         for ingredient in value:
             if ingredient['amount'] <= 0:
                 raise serializers.ValidationError(
-                    'Количество ингредиента не может быть меньше 1'
+                    (f'Количество '
+                     f'{Ingredient.objects.get(pk=ingredient[id]).name} '
+                     f'не может быть меньше 1')
                 )
-            if not Ingredient.objects.filter(id=ingredient['id']).exists():
-                raise serializers.ValidationError(
-                    'Ингредиент не найден'
-                )
+        ingredient_ids = [ingredient[id] for ingredient in value]
+        if len(value) == Ingredient.objects.filter(
+            id__in=ingredient_ids
+        ).count():
+            raise serializers.ValidationError(
+                'Добавлен несуществующий ингридиент'
+            )
         return value
 
     def validate_tags(self, value):
@@ -257,42 +261,7 @@ class UserCreateSerializer(DjoserCreateSerializer):
 
     class Meta:
         fields = (
-            "email", "username", "first_name",
-            "last_name", "password",
+            'email', 'username', 'first_name',
+            'last_name', 'password',
         )
         model = User
-
-    def validate_email(self, value):
-        if len(value) > 254:
-            raise serializers.ValidationError(
-                {'email': 'Длина почты не может превышать 254 символа'}
-            )
-        return value
-
-    def validate_username(self, value):
-        if len(value) > 150:
-            raise serializers.ValidationError(
-                {'username': error_message}
-            )
-        return value
-
-    def validate_password(self, value):
-        if len(value) > 150:
-            raise serializers.ValidationError(
-                {'password': error_message}
-            )
-        return value
-
-    def validate_last_name(self, value):
-        if len(value) > 150:
-            raise serializers.ValidationError(
-                {'last_name': error_message}
-            )
-        return value
-
-    def validate_first_name(self, value):
-        if len(value) > 150:
-            raise serializers.ValidationError(
-                {'first_name', error_message}
-            )
-        return value
