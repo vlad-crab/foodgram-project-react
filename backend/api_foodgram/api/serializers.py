@@ -245,11 +245,11 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
                      f'не может быть меньше 1')
                 )
         ingredient_ids = [ingredient['id'] for ingredient in value]
-        if len(value) != Ingredient.objects.filter(
+        if len(set(ingredient_ids)) != Ingredient.objects.filter(
             id__in=ingredient_ids
         ).count():
             raise serializers.ValidationError(
-                f'Добавлен несуществующий ингридиент'
+                'Добавлен ингридиент с несуществующим id'
             )
         return value
 

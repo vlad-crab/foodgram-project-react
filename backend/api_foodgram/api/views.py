@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
                             Subscriptions, Tag)
 
-from .filters import RecipeFilter, InredientNameFilter
+from .filters import InredientNameFilter, RecipeFilter
 from .permissions import IsAuthor, ReadOnly
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeWriteSerializer, ReducedRecipeSerializer,
@@ -50,7 +50,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend, )
 
     def get_queryset(self):
-        queryset = Recipe.objects.prefetch_related('tags', 'ingredients', 'author')
+        queryset = Recipe.objects.prefetch_related(
+            'tags', 'ingredients', 'author'
+        )
         if self.request.user.is_authenticated:
             queryset = queryset.annotate(
                 is_favorited=Exists(
