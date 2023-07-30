@@ -53,10 +53,7 @@ class ReducedRecipeSerializer(serializers.ModelSerializer):
 
 class IngredientWithWTSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='ingredient.id', read_only=True)
-    name = serializers.CharField(
-        source='ingredient.name',
-        read_only=True
-    )
+    name = serializers.CharField(source='ingredient.name', read_only=True)
     measure_unit = serializers.CharField(
         source='ingredient.measure_unit',
         read_only=True
@@ -115,7 +112,7 @@ class Base64ImageField(serializers.ImageField):
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
-    ingredients = IngredientWithWTSerializer(many=True, read_only=True)
+    ingredients = serializers.SerializerMethodField()
     tags = TagSerializer(many=True, read_only=True)
     author = UserSerializer(read_only=True)
     is_favorited = serializers.BooleanField(
@@ -134,8 +131,15 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         )
         model = Recipe
 
+    def get_ingredients(self, obj):
+        query = IngredientWithWT.objects.filter(
+            recipe=obj
+        ).select_related('ingredient')
+        serializer = IngredientWithWTSerializer(query, many=True)
+        return serializer.data
 
-class IngredientForRecipeSerializer(serializers.Serializer):
+
+class IngredientForRecipeWriteSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     amount = serializers.IntegerField()
 
@@ -147,7 +151,9 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         write_only=True
     )
     author = UserSerializer(read_only=True)
-    ingredients = IngredientForRecipeSerializer(many=True, write_only=True)
+    ingredients = IngredientForRecipeWriteSerializer(
+        many=True, write_only=True
+    )
 
     class Meta:
         fields = (
@@ -170,19 +176,18 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags')
         author = self.context.get('request').user
         recipe = Recipe(**validated_data, author=author)
+        recipe.save()
         ingredient_wt_obj_list = []
         for ingredient in ingredients:
             ingredient_wt_obj_list.append(
                 IngredientWithWT(
                     ingredient_id=ingredient['id'],
+                    recipe_id=recipe.id,
                     amount=ingredient['amount'],
                 )
             )
-        recipe.save()
-        recipe.ingredients.set(
-            IngredientWithWT.objects.bulk_create(
-                ingredient_wt_obj_list
-            )
+        IngredientWithWT.objects.bulk_create(
+            ingredient_wt_obj_list
         )
         recipe.tags.set(tags)
         return recipe
@@ -197,18 +202,17 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         if 'image' in validated_data.keys():
             instance.image = validated_data['image']
         ingredient_wt_obj_list = []
-        IngredientWithWT.objects.filter(recipe=instance).delete()
+        IngredientWithWT.objects.filter(recipe__exact=instance).delete()
         for ingredient in ingredients:
             ingredient_wt_obj_list.append(
                 IngredientWithWT(
                     ingredient_id=ingredient['id'],
+                    recipe=instance,
                     amount=int(ingredient['amount'])
                 )
             )
-        instance.ingredients.set(
-            IngredientWithWT.objects.bulk_create(
-                ingredient_wt_obj_list
-            )
+        IngredientWithWT.objects.bulk_create(
+            ingredient_wt_obj_list
         )
         instance.tags.set(tags)
         instance.save()
@@ -237,15 +241,15 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             if ingredient['amount'] <= 0:
                 raise serializers.ValidationError(
                     (f'Количество '
-                     f'{Ingredient.objects.get(pk=ingredient[id]).name} '
+                     f'{Ingredient.objects.get(pk=ingredient["id"]).name} '
                      f'не может быть меньше 1')
                 )
-        ingredient_ids = [ingredient[id] for ingredient in value]
-        if len(value) == Ingredient.objects.filter(
+        ingredient_ids = [ingredient['id'] for ingredient in value]
+        if len(value) != Ingredient.objects.filter(
             id__in=ingredient_ids
         ).count():
             raise serializers.ValidationError(
-                'Добавлен несуществующий ингридиент'
+                f'Добавлен несуществующий ингридиент'
             )
         return value
 

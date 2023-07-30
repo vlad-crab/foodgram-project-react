@@ -29,27 +29,6 @@ class Ingredient(models.Model):
         verbose_name_plural = 'Ингредиенты'
 
 
-class IngredientWithWT(models.Model):
-    amount = models.IntegerField(
-        blank=False,
-        null=False,
-        default=1,
-    )
-    ingredient = models.ForeignKey(
-        Ingredient,
-        on_delete=models.CASCADE,
-        related_name='weights'
-    )
-
-    class Meta:
-        verbose_name = 'Ингредиент с количеством'
-        verbose_name_plural = 'Ингредиенты с количеством'
-
-    def __str__(self):
-        return (f'{self.ingredient.name} {self.amount} '
-                f'{self.ingredient.measure_unit}')
-
-
 class Recipe(models.Model):
     author = models.ForeignKey(
         User,
@@ -69,8 +48,8 @@ class Recipe(models.Model):
         related_name='recipes'
     )
     ingredients = models.ManyToManyField(
-        IngredientWithWT,
-        blank=False,
+        Ingredient,
+        through='IngredientWithWT',
         related_name='recipe'
     )
     pub_date = models.DateTimeField(auto_now_add=True)
@@ -82,6 +61,31 @@ class Recipe(models.Model):
 
     def __str__(self):
         return f'{self.name}'
+
+
+class IngredientWithWT(models.Model):
+    amount = models.IntegerField(
+        blank=False,
+        null=False,
+        default=1,
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+    )
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name='weights'
+    )
+
+    class Meta:
+        verbose_name = 'Ингредиент с количеством'
+        verbose_name_plural = 'Ингредиенты с количеством'
+
+    def __str__(self):
+        return (f'{self.ingredient.name} {self.amount} '
+                f'{self.ingredient.measure_unit}')
 
 
 class ShoppingCart(models.Model):

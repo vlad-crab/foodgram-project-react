@@ -6,7 +6,8 @@ from recipes.models import (Favorite, Ingredient, IngredientWithWT, Recipe,
 
 class IngredientAdmin(admin.ModelAdmin):
     empty_value_display = '-пусто-'
-    fields = ('name', 'measure_unit', 'id')
+    fields = ('name', 'measure_unit')
+    list_display = ('id', 'name', 'measure_unit')
     search_fields = ('name',)
 
 
