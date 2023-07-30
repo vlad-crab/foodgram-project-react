@@ -3,7 +3,7 @@ from django.db.models import Exists, OuterRef
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import permissions, status, viewsets
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
                             Subscriptions, Tag)
 
-from .filters import InredientNameFilter, RecipeFilter
+from .filters import RecipeFilter
 from .permissions import IsAuthor, ReadOnly
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeWriteSerializer, ReducedRecipeSerializer,
@@ -26,9 +26,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     pagination_class = None
     permission_classes = (permissions.AllowAny, )
-    filterset_fields = ('name', )
-    filter_backends = (DjangoFilterBackend, )
-    filterset_class = InredientNameFilter
+    filter_backends = (filters.SearchFilter, )
+    search_fields = ('$name', )
     queryset = Ingredient.objects.all()
 
 
