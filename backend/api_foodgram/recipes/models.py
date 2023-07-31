@@ -19,7 +19,7 @@ class Tag(models.Model):
 
 class Ingredient(models.Model):
     name = models.TextField()
-    measure_unit = models.TextField()
+    measurement_unit = models.TextField()
 
     def __str__(self):
         return self.name
@@ -85,7 +85,7 @@ class IngredientWithWT(models.Model):
 
     def __str__(self):
         return (f'{self.ingredient.name} {self.amount} '
-                f'{self.ingredient.measure_unit}')
+                f'{self.ingredient.measurement_unit}')
 
 
 class ShoppingCart(models.Model):

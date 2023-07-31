@@ -39,7 +39,7 @@ class TagSerializer(serializers.ModelSerializer):
 class IngredientSerializer(serializers.ModelSerializer):
 
     class Meta:
-        fields = ('id', 'name', 'measure_unit')
+        fields = ('id', 'name', '')
         model = Ingredient
 
 
@@ -54,13 +54,13 @@ class ReducedRecipeSerializer(serializers.ModelSerializer):
 class IngredientWithWTSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='ingredient.id', read_only=True)
     name = serializers.CharField(source='ingredient.name', read_only=True)
-    measure_unit = serializers.CharField(
-        source='ingredient.measure_unit',
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit',
         read_only=True
     )
 
     class Meta:
-        fields = ('id', 'amount', 'name', 'measure_unit')
+        fields = ('id', 'amount', 'name', 'measurement_unit')
         model = IngredientWithWT
 
 

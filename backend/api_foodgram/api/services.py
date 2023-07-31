@@ -14,5 +14,5 @@ def get_shopping_list(user):
     for item in queryset:
         ingredient = Ingredient.objects.get(pk=item['ingredient_id'])
         shopping_cart += (f'{ingredient.name} ({item["amount"]})'
-                          f'{ingredient.measure_unit}, \n')
+                          f'{ingredient.measurement_unit}, \n')
     return shopping_cart
