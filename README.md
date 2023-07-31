@@ -11,6 +11,8 @@ ip: ```158.160.9.100```
 
 Админка ```password: adminpassword, username: admin```
 
+Файл с Юзерами и их паролями ```https://docs.google.com/document/d/1NA4Ef6yyfA96kxnxy9RjxIsMlbp4XsdQSGHzKszvApA/edit?usp=sharing```
+
 ### Описание
 Проект foodgram это площадка для размещения рецептов.
 
