@@ -4,6 +4,13 @@ foodgram-project-react
 
 https://foodgram-vladcrab.ddns.net/
 
+
+Данные для ревью:
+
+ip: ```158.160.9.100```
+
+Админка ```password: adminpassword, username: admin```
+
 ### Описание
 Проект foodgram это площадка для размещения рецептов.
 
