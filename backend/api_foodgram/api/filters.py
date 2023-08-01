@@ -51,7 +51,7 @@ class TagFilter(FilterSet):
 
     def get_ordered_and_filtered_queryset(self, queryset, name, value):
         if value:
-            queryset = queryset.filter(name_icontains=value)
+            queryset = queryset.filter(name__icontains=value)
             queryset = queryset.annotate(
                 filter_flag=Case(
                     When(Q(name__istartswith=value), then=Value(1)),
