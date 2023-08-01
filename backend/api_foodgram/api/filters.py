@@ -56,7 +56,7 @@ class TagFilter(FilterSet):
                 filter_flag=Case(
                     When(Q(name__istartswith=value), then=Value(1)),
                     default=Value(0),
-                    output_field = IntegerField()
+                    output_field=IntegerField()
                 )
             ).order_by('-filter_flag')
         return queryset
