@@ -1,3 +1,4 @@
+from django.db.models import Case, Q, Value, When
 from django_filters.rest_framework import FilterSet, filters
 
 from recipes.models import Recipe, Tag
@@ -36,4 +37,25 @@ class RecipeFilter(FilterSet):
     def get_is_author(self, queryset, name, value):
         if value:
             return queryset.filter(author_id=value)
+        return queryset
+
+
+class TagFilter(FilterSet):
+    name = filters.CharFilter(
+        method='get_ordered_and_filtered_queryset'
+    )
+
+    class Meta:
+        model = Tag
+        fields = ('name', )
+
+    def get_ordered_and_filtered_queryset(self, queryset, name, value):
+        if value:
+            queryset = queryset.filter(name_icontains=value)
+            queryset = queryset.annotate(
+                filter_flag=Case(
+                    When(Q(name__istartswith=value), then=Value(1)),
+                    default=Value(0)
+                )
+            ).order_by('-filter_flag')
         return queryset
