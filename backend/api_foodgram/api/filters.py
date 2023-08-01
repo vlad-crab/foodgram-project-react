@@ -1,4 +1,4 @@
-from django.db.models import Case, Q, Value, When
+from django.db.models import Case, IntegerField, Q, Value, When
 from django_filters.rest_framework import FilterSet, filters
 
 from recipes.models import Ingredient, Recipe, Tag
@@ -55,7 +55,8 @@ class TagFilter(FilterSet):
             queryset = queryset.annotate(
                 filter_flag=Case(
                     When(Q(name__istartswith=value), then=Value(1)),
-                    default=Value(0)
+                    default=Value(0),
+                    output_field = IntegerField()
                 )
             ).order_by('-filter_flag')
         return queryset
