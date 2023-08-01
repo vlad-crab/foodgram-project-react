@@ -40,7 +40,7 @@ class RecipeFilter(FilterSet):
         return queryset
 
 
-class TagFilter(FilterSet):
+class IngredientFilter(FilterSet):
     name = filters.CharFilter(
         method='get_ordered_and_filtered_queryset'
     )
@@ -54,6 +54,7 @@ class TagFilter(FilterSet):
             queryset = queryset.filter(name__icontains=value)
             queryset = queryset.annotate(
                 filter_flag=Case(
+                    When(Q(name__iexact=value), then=Value(2)),
                     When(Q(name__istartswith=value), then=Value(1)),
                     default=Value(0),
                     output_field=IntegerField()

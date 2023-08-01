@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
                             Subscriptions, Tag)
 
-from .filters import RecipeFilter, TagFilter
+from .filters import IngredientFilter, RecipeFilter
 from .paginators import PageNumberPagination
 from .permissions import IsAuthor, ReadOnly
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
@@ -28,7 +28,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (permissions.AllowAny, )
     filterset_fields = ('name', )
     filter_backends = (DjangoFilterBackend,)
-    filterset_class = TagFilter
+    filterset_class = IngredientFilter
     queryset = Ingredient.objects.all()
 
 
