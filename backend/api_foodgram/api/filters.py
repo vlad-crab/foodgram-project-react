@@ -1,7 +1,7 @@
 from django.db.models import Case, Q, Value, When
 from django_filters.rest_framework import FilterSet, filters
 
-from recipes.models import Recipe, Tag
+from recipes.models import Ingredient, Recipe, Tag
 
 
 class RecipeFilter(FilterSet):
@@ -46,7 +46,7 @@ class TagFilter(FilterSet):
     )
 
     class Meta:
-        model = Tag
+        model = Ingredient
         fields = ('name', )
 
     def get_ordered_and_filtered_queryset(self, queryset, name, value):
