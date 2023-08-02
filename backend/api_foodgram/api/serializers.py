@@ -245,6 +245,10 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
                      f'не может быть меньше 1')
                 )
         ingredient_ids = [ingredient['id'] for ingredient in value]
+        if len(set(ingredient_ids)) != len(ingredient_ids):
+            raise serializers.ValidationError(
+                'Добавлен дублирующийся ингридиент'
+            )
         if len(set(ingredient_ids)) != Ingredient.objects.filter(
             id__in=ingredient_ids
         ).count():
