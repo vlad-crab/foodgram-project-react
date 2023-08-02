@@ -59,5 +59,5 @@ class IngredientFilter(FilterSet):
                     default=Value(0),
                     output_field=IntegerField()
                 )
-            ).order_by('-filter_flag')
+            ).order_by('-filter_flag', 'name')
         return queryset
