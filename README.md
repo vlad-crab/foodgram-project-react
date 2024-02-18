@@ -2,16 +2,9 @@ foodgram-project-react
 
 ![foodgram-project workflow](https://github.com/vlad-crab/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg)
 
+На данный момент проект не доступен из-за затрат на удаленный сервер
 https://foodgram-vladcrab.ddns.net/
 
-
-Данные для ревью:
-
-ip: ```158.160.9.100```
-
-Админка ```password: adminpassword, username: admin```
-
-Файл с Юзерами и их паролями ```https://docs.google.com/document/d/1NA4Ef6yyfA96kxnxy9RjxIsMlbp4XsdQSGHzKszvApA/edit?usp=sharing```
 
 ### Описание
 Проект foodgram это площадка для размещения рецептов.
