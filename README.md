@@ -5,6 +5,8 @@ foodgram-project-react
 На данный момент проект не доступен из-за затрат на удаленный сервер
 https://foodgram-vladcrab.ddns.net/
 
+### Стек
+Django, DRF, Docker
 
 ### Описание
 Проект foodgram это площадка для размещения рецептов.
